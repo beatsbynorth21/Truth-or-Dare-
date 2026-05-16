@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>Northhh ❤️ Sikemi</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#070707;
+color:white;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+overflow:hidden;
+}
+
+/* BACKGROUND */
+
+.bg{
+position:fixed;
+width:100%;
+height:100%;
+overflow:hidden;
+z-index:-1;
+}
+
+.heart{
+position:absolute;
+opacity:.08;
+animation:float linear infinite;
+}
+
+@keyframes float{
+
+from{
+transform:translateY(100vh) rotate(0deg);
+}
+
+to{
+transform:translateY(-120vh) rotate(360deg);
+}
+
+}
+
+/* APP */
+
+.app{
+width:95%;
+max-width:520px;
+height:93vh;
+background:#111111;
+border-radius:30px;
+padding:18px;
+display:flex;
+flex-direction:column;
+border:1px solid rgba(255,255,255,.05);
+box-shadow:0 0 45px rgba(255,0,120,.15);
+}
+
+/* TOP */
+
+.top{
+text-align:center;
+margin-bottom:14px;
+}
+
+.top h1{
+font-size:2rem;
+color:#ff4f9a;
+}
+
+.sub{
+margin-top:5px;
+opacity:.7;
+font-size:.9rem;
+}
+
+.room{
+margin-top:12px;
+background:#1d1d1d;
+padding:10px;
+border-radius:15px;
+font-size:.85rem;
+opacity:.9;
+}
+
+.score{
+margin-top:10px;
+background:#1d1d1d;
+padding:10px;
+border-radius:15px;
+font-size:.9rem;
+}
+
+.typing{
+height:18px;
+font-size:.8rem;
+opacity:.7;
+margin-top:6px;
+}
+
+/* QUESTION */
+
+.questionBox{
+background:#181818;
+padding:15px;
+border-radius:22px;
+margin-bottom:12px;
+}
+
+.question{
+font-size:1rem;
+line-height:1.5;
+}
+
+.tools{
+display:flex;
+gap:10px;
+margin-top:12px;
+}
+
+.tools button{
+flex:1;
+}
+
+/* CHAT */
+
+.chat{
+flex:1;
+overflow-y:auto;
+display:flex;
+flex-direction:column;
+gap:12px;
+padding:10px 0;
+}
+
+.msg{
+padding:14px;
+border-radius:20px;
+max-width:80%;
+animation:pop .2s ease;
+}
+
+.mine{
+align-self:flex-end;
+background:#ff4f9a;
+}
+
+.theirs{
+align-self:flex-start;
+background:#242424;
+}
+
+.user{
+font-size:.8rem;
+opacity:.8;
+margin-bottom:5px;
+}
+
+.reactions{
+display:flex;
+gap:8px;
+margin-top:8px;
+font-size:18px;
+cursor:pointer;
+}
+
+@keyframes pop{
+
+from{
+opacity:0;
+transform:scale(.7);
+}
+
+to{
+opacity:1;
+transform:scale(1);
+}
+
+}
+
+/* INPUTS */
+
+.bottom{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
+
+.bottom input{
+flex:1;
+}
+
+input{
+padding:14px;
+border:none;
+outline:none;
+border-radius:16px;
+background:#1f1f1f;
+color:white;
+}
+
+button{
+border:none;
+padding:14px;
+border-radius:16px;
+background:#ff4f9a;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+
+.addQuestion{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
+
+audio{
+width:100%;
+margin-top:10px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="bg" id="bg"></div>
+
+<div class="app">
+
+<div class="top">
+
+<h1>Northhh ❤️ Sikemi</h1>
+
+<div class="sub">
+private space for Northhh & Sikemi
+</div>
+
+<div class="room" id="roomDisplay">
+Invite Code: ...
+</div>
+
+<div class="score" id="score">
+Compatibility Score: 0%
+</div>
+
+<div class="typing" id="typing"></div>
+
+</div>
+
+<div class="questionBox">
+
+<div class="question" id="question">
+Tap “New Question” 👀
+</div>
+
+<div class="tools">
+
+<button onclick="newQuestion()">
+New Question
+</button>
+
+<button onclick="startVoice()">
+🎤 Voice
+</button>
+
+</div>
+
+</div>
+
+<div class="chat" id="chat"></div>
+
+<div class="addQuestion">
+
+<input
+type="text"
+id="customQuestion"
+placeholder="Add your own question..."
+/>
+
+<button onclick="addQuestion()">
+Add
+</button>
+
+</div>
+
+<div class="bottom">
+
+<input
+type="text"
+id="message"
+placeholder="Type something..."
+/>
+
+<button onclick="sendMessage()">
+Send
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+/* FIREBASE */
+
+const firebaseConfig = {
+
+apiKey: "AIzaSyDVDoLK24DasVCeNdYDddVeTkrVGb7k6GU",
+
+authDomain: "truth-or-dare-b8a05.firebaseapp.com",
+
+databaseURL:
+"https://truth-or-dare-b8a05-default-rtdb.firebaseio.com",
+
+projectId: "truth-or-dare-b8a05",
+
+storageBucket:
+"truth-or-dare-b8a05.firebasestorage.app",
+
+messagingSenderId: "254687375783",
+
+appId:
+"1:254687375783:web:fac2b72d6a310caaa8c682",
+
+measurementId: "G-5Q5P54M0TQ"
+
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+/* USER */
+
+let username =
+localStorage.getItem("northhhUser");
+
+if(!username){
+
+username = prompt("Your name?");
+
+localStorage.setItem(
+"northhhUser",
+username
+);
+
+}
+
+/* ROOM */
+
+let room =
+localStorage.getItem("northhhRoom");
+
+if(!room){
+
+const createRoom = confirm(
+"OK = Create Private Room\nCancel = Join Room"
+);
+
+if(createRoom){
+
+room = Math.random()
+.toString(36)
+.substring(2,8)
+.toUpperCase();
+
+alert(
+"Send this invite code to your partner:\n\n" + room
+);
+
+}else{
+
+room = prompt(
+"Enter Invite Code"
+).toUpperCase();
+
+}
+
+localStorage.setItem(
+"northhhRoom",
+room
+);
+
+}
+
+document.getElementById(
+"roomDisplay"
+).innerHTML =
+"Invite Code: " + room;
+
+/* ELEMENTS */
+
+const chat =
+document.getElementById("chat");
+
+const input =
+document.getElementById("message");
+
+const typing =
+document.getElementById("typing");
+
+const questionEl =
+document.getElementById("question");
+
+/* QUESTIONS */
+
+const questions = [
+
+"What's your favorite thing about Northhh?",
+
+"What moment made you feel closest to Sikemi?",
+
+"What outfit do you want to see me in?",
+
+"What instantly gives you butterflies about me?",
+
+"What’s one thing you want us to do together someday?",
+
+"What’s your favorite late-night memory with me?",
+
+"What’s something you've wanted to tell me but held back?",
+
+"What song reminds you of us?",
+
+"What would our perfect night together feel like?",
+
+"What’s your favorite thing about our connection?"
+
+];
+
+/* SCORE */
+
+function updateScore(){
+
+const score =
+Math.floor(Math.random() * 41) + 60;
+
+document.getElementById(
+"score"
+).innerHTML =
+"Compatibility Score: " +
+score +
+"% ❤️";
+
+}
+
+updateScore();
+
+/* SEND */
+
+function sendMessage(){
+
+const text =
+input.value.trim();
+
+if(text === "") return;
+
+db.ref(
+"rooms/" + room + "/messages"
+).push({
+
+user: username,
+text: text,
+time: Date.now()
+
+});
+
+input.value = "";
+
+}
+
+input.addEventListener(
+"keypress",
+e=>{
+
+if(e.key === "Enter"){
+sendMessage();
+}
+
+}
+);
+
+/* CHAT */
+
+db.ref(
+"rooms/" + room + "/messages"
+)
+.on(
+"child_added",
+snap=>{
+
+const msg = snap.val();
+
+const div =
+document.createElement("div");
+
+div.classList.add("msg");
+
+if(msg.user === username){
+
+div.classList.add("mine");
+
+}else{
+
+div.classList.add("theirs");
+
+}
+
+if(msg.voice){
+
+div.innerHTML = `
+
+<div class="user">
+${msg.user}
+</div>
+
+<audio controls src="${msg.voice}">
+</audio>
+
+`;
+
+}else{
+
+div.innerHTML = `
+
+<div class="user">
+${msg.user}
+</div>
+
+<div>
+${msg.text}
+</div>
+
+<div class="reactions">
+
+<span onclick="react('❤️')">
+❤️
+</span>
+
+<span onclick="react('🥵')">
+🥵
+</span>
+
+<span onclick="react('😈')">
+😈
+</span>
+
+</div>
+
+`;
+
+}
+
+chat.appendChild(div);
+
+chat.scrollTop =
+chat.scrollHeight;
+
+}
+);
+
+/* REACTIONS */
+
+function react(emoji){
+
+db.ref(
+"rooms/" + room + "/messages"
+)
+.push({
+
+user:"System",
+
+text:
+username +
+" reacted " +
+emoji,
+
+time:Date.now()
+
+});
+
+}
+
+/* TYPING */
+
+input.addEventListener(
+"input",
+()=>{
+
+db.ref(
+"rooms/" + room + "/typing"
+).set(username);
+
+clearTimeout(
+window.typeTimer
+);
+
+window.typeTimer =
+setTimeout(()=>{
+
+db.ref(
+"rooms/" + room + "/typing"
+).set("");
+
+},1000);
+
+}
+);
+
+db.ref(
+"rooms/" + room + "/typing"
+)
+.on(
+"value",
+snap=>{
+
+const typer =
+snap.val();
+
+if(
+typer &&
+typer !== username
+){
+
+typing.innerHTML =
+typer +
+" is typing...";
+
+}else{
+
+typing.innerHTML = "";
+
+}
+
+}
+);
+
+/* QUESTIONS */
+
+function newQuestion(){
+
+const random =
+questions[
+Math.floor(
+Math.random() *
+questions.length
+)
+];
+
+db.ref(
+"rooms/" + room + "/question"
+).set(random);
+
+}
+
+db.ref(
+"rooms/" + room + "/question"
+)
+.on(
+"value",
+snap=>{
+
+if(snap.val()){
+
+questionEl.innerHTML =
+snap.val();
+
+}
+
+}
+);
+
+/* CUSTOM QUESTIONS */
+
+function addQuestion(){
+
+const val =
+document.getElementById(
+"customQuestion"
+).value.trim();
+
+if(val === "") return;
+
+questions.push(val);
+
+db.ref(
+"rooms/" + room + "/messages"
+)
+.push({
+
+user:"System",
+
+text:
+username +
+" added a new question 👀",
+
+time:Date.now()
+
+});
+
+document.getElementById(
+"customQuestion"
+).value = "";
+
+}
+
+/* VOICE NOTES */
+
+function startVoice(){
+
+navigator.mediaDevices
+.getUserMedia({audio:true})
+
+.then(stream=>{
+
+const recorder =
+new MediaRecorder(stream);
+
+let chunks = [];
+
+recorder.start();
+
+alert(
+"Recording for 5 seconds 🎤"
+);
+
+setTimeout(()=>{
+
+recorder.stop();
+
+},5000);
+
+recorder.ondataavailable =
+e=>{
+
+chunks.push(e.data);
+
+};
+
+recorder.onstop = ()=>{
+
+const blob =
+new Blob(
+chunks,
+{type:'audio/mp3'}
+);
+
+const reader =
+new FileReader();
+
+reader.readAsDataURL(blob);
+
+reader.onloadend =
+()=>{
+
+db.ref(
+"rooms/" + room + "/messages"
+)
+.push({
+
+user: username,
+voice: reader.result,
+time: Date.now()
+
+});
+
+};
+
+};
+
+});
+
+}
+
+/* FLOATING HEARTS */
+
+function createHeart(){
+
+const heart =
+document.createElement("div");
+
+heart.classList.add(
+"heart"
+);
+
+heart.innerHTML = "❤️";
+
+heart.style.left =
+Math.random() * 100 +
+"vw";
+
+heart.style.fontSize =
+(
+Math.random() * 20 + 15
+) + "px";
+
+heart.style.animationDuration =
+(
+Math.random() * 4 + 4
+) + "s";
+
+document.getElementById(
+"bg"
+).appendChild(heart);
+
+setTimeout(()=>{
+
+heart.remove();
+
+},8000);
+
+}
+
+setInterval(
+createHeart,
+500
+);
+
+</script>
+
+</body>
+</html>
