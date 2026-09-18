@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Compat</title>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<style>
+:root{
+  --bg:#000000; --panel:#0d0d0d; --line:#242424;
+  --fg:#f2f2ef; --dim:#8a8a86; --accent:#ff5f9e; --accent2:#ff9a5f;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'JetBrains Mono',monospace;}
+body{
+  background:var(--bg); color:var(--fg); height:100vh;
+  display:flex; justify-content:center; align-items:center; overflow:hidden;
+}
+
+/* AMBIENT GLOW */
+.glow{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.glow::before,.glow::after{content:'';position:absolute;width:60vw;height:60vw;
+  max-width:640px;max-height:640px;border-radius:50%;filter:blur(90px);opacity:.25;
+  animation:drift 16s ease-in-out infinite alternate}
+.glow::before{background:var(--accent);top:-18%;left:-14%}
+.glow::after{background:var(--accent2);bottom:-20%;right:-16%;animation-delay:-8s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(6%,4%) scale(1.15)}}
+
+/* FLOATING HEARTS */
+.heart{position:absolute;opacity:.06;animation:float linear infinite;color:var(--accent)}
+@keyframes float{from{transform:translateY(100vh) rotate(0deg)}to{transform:translateY(-120vh) rotate(360deg)}}
+
+/* APP */
+.app{
+  width:95%; max-width:520px; height:93vh; background:var(--panel);
+  border-radius:18px; padding:20px; display:flex; flex-direction:column;
+  border:1px solid var(--line); box-shadow:0 0 60px -10px rgba(255,95,158,.15);
+  position:relative; z-index:1;
+}
+
+.top{text-align:center;margin-bottom:14px}
+.top .eyebrow{color:var(--accent);font-size:.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+.top h1{
+  font-family:'Big Shoulders Display',sans-serif;font-weight:800;
+  font-size:2.4rem;letter-spacing:.5px;color:var(--fg);line-height:1;
+}
+.sub{margin-top:6px;color:var(--dim);font-size:.82rem}
+
+.room,.score{
+  margin-top:10px;background:var(--bg);border:1px solid var(--line);
+  padding:10px;border-radius:10px;font-size:.8rem;color:var(--dim);letter-spacing:.3px;
+}
+.score{color:var(--accent);font-weight:700}
+.typing{height:16px;font-size:.75rem;color:var(--dim);margin-top:6px}
+
+.questionBox{
+  background:var(--bg);border:1px solid var(--line);
+  padding:16px;border-radius:14px;margin-bottom:12px;
+}
+.question{font-size:.98rem;line-height:1.5}
+.tools{display:flex;gap:10px;margin-top:12px}
+.tools button{flex:1}
+
+.chat{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:10px 0}
+.msg{padding:12px 14px;border-radius:14px;max-width:80%;animation:pop .2s ease;font-size:.9rem}
+.mine{align-self:flex-end;background:var(--accent);color:#0a0a0a}
+.theirs{align-self:flex-start;background:#1a1a1a;border:1px solid var(--line)}
+.user{font-size:.72rem;opacity:.75;margin-bottom:4px;letter-spacing:.3px}
+.reactions{display:flex;gap:8px;margin-top:8px;font-size:18px;cursor:pointer}
+@keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+
+.bottom{display:flex;gap:10px;margin-top:10px}
+.bottom input{flex:1}
+input{
+  padding:12px 14px;border:1px solid var(--line);outline:none;border-radius:10px;
+  background:var(--bg);color:var(--fg);font-family:inherit;font-size:.85rem;
+}
+input:focus{border-color:var(--accent)}
+button{
+  border:none;padding:12px 16px;border-radius:10px;background:var(--accent);
+  color:#0a0a0a;font-weight:700;cursor:pointer;font-family:inherit;font-size:.85rem;
+  letter-spacing:.3px;transition:filter .15s;
+}
+button:hover{filter:brightness(1.1)}
+.addQuestion{display:flex;gap:10px;margin-top:10px}
+audio{width:100%;margin-top:8px}
+.msg img{max-width:100%;border-radius:10px;margin-top:6px;display:block}
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+<div class="bg" id="bg"></div>
+
+<div class="app">
+
+<div class="top">
+<p class="eyebrow">Two players</p>
+<h1>Compat</h1>
+<div class="sub">a private room for you two</div>
+<div class="room" id="roomDisplay">Invite Code: ...</div>
+<div class="score" id="score">Compatibility Score: 0%</div>
+<div class="typing" id="typing"></div>
+</div>
+
+<div class="questionBox">
+<div class="question" id="question">Tap "New Question" 👀</div>
+<div class="tools">
+<button onclick="newQuestion()">New Question</button>
+<button onclick="startVoice()">🎤 Voice</button>
+<button onclick="document.getElementById('imageInput').click()">📷 Photo</button>
+<input type="file" id="imageInput" accept="image/*" style="display:none" onchange="sendImage(event)" />
+</div>
+</div>
+
+<div class="chat" id="chat"></div>
+
+<div class="addQuestion">
+<input type="text" id="customQuestion" placeholder="Add your own question..." />
+<button onclick="addQuestion()">Add</button>
+</div>
+
+<div class="bottom">
+<input type="text" id="message" placeholder="Type something..." />
+<button onclick="sendMessage()">Send</button>
+</div>
+
+</div>
+
+<script>
+/* FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyDVDoLK24DasVCeNdYDddVeTkrVGb7k6GU",
+  authDomain: "truth-or-dare-b8a05.firebaseapp.com",
+  databaseURL: "https://truth-or-dare-b8a05-default-rtdb.firebaseio.com",
+  projectId: "truth-or-dare-b8a05",
+  storageBucket: "truth-or-dare-b8a05.firebasestorage.app",
+  messagingSenderId: "254687375783",
+  appId: "1:254687375783:web:fac2b72d6a310caaa8c682",
+  measurementId: "G-5Q5P54M0TQ"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* USER */
+let username = localStorage.getItem("compatUser");
+if(!username){
+  username = prompt("Your name?");
+  localStorage.setItem("compatUser", username);
+}
+
+/* ROOM */
+let room = localStorage.getItem("compatRoom");
+if(!room){
+  const createRoom = confirm("OK = Create Private Room\nCancel = Join Room");
+  if(createRoom){
+    room = Math.random().toString(36).substring(2,8).toUpperCase();
+    alert("Send this invite code to your partner:\n\n" + room);
+  }else{
+    room = prompt("Enter Invite Code").toUpperCase();
+  }
+  localStorage.setItem("compatRoom", room);
+}
+document.getElementById("roomDisplay").innerHTML = "Invite Code: " + room;
+
+/* ELEMENTS */
+const chat = document.getElementById("chat");
+const input = document.getElementById("message");
+const typing = document.getElementById("typing");
+const questionEl = document.getElementById("question");
+
+/* QUESTIONS — generic, works for any couple */
+const questions = [
+  "What's your favorite thing about your partner?",
+  "What moment made you feel closest to them?",
+  "What's a small thing they do that means a lot to you?",
+  "What instantly gives you butterflies about them?",
+  "What's one thing you want to do together someday?",
+  "What's your favorite memory together so far?",
+  "What's something you've wanted to say but held back?",
+  "What song reminds you of them?",
+  "What would a perfect day together look like?",
+  "What's your favorite thing about your connection?"
+];
+
+/* SCORE */
+function updateScore(){
+  const score = Math.floor(Math.random() * 41) + 60;
+  document.getElementById("score").innerHTML = "Compatibility Score: " + score + "% ❤️";
+}
+updateScore();
+
+/* SEND */
+function sendMessage(){
+  const text = input.value.trim();
+  if(text === "") return;
+  db.ref("rooms/" + room + "/messages").push({ user: username, text: text, time: Date.now() });
+  input.value = "";
+}
+input.addEventListener("keypress", e=>{ if(e.key === "Enter") sendMessage(); });
+
+/* CHAT */
+db.ref("rooms/" + room + "/messages").on("child_added", snap=>{
+  const msg = snap.val();
+  const div = document.createElement("div");
+  div.classList.add("msg");
+  div.classList.add(msg.user === username ? "mine" : "theirs");
+  if(msg.voice){
+    div.innerHTML = `<div class="user">${msg.user}</div><audio controls src="${msg.voice}"></audio>`;
+  }else if(msg.image){
+    div.innerHTML = `<div class="user">${msg.user}</div><img src="${msg.image}" />`;
+  }else{
+    div.innerHTML = `<div class="user">${msg.user}</div><div>${msg.text}</div>
+      <div class="reactions">
+        <span onclick="react('❤️')">❤️</span>
+        <span onclick="react('🥵')">🥵</span>
+        <span onclick="react('😈')">😈</span>
+      </div>`;
+  }
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+});
+
+/* REACTIONS */
+function react(emoji){
+  db.ref("rooms/" + room + "/messages").push({ user:"System", text: username + " reacted " + emoji, time:Date.now() });
+}
+
+/* TYPING */
+input.addEventListener("input", ()=>{
+  db.ref("rooms/" + room + "/typing").set(username);
+  clearTimeout(window.typeTimer);
+  window.typeTimer = setTimeout(()=>{ db.ref("rooms/" + room + "/typing").set(""); },1000);
+});
+db.ref("rooms/" + room + "/typing").on("value", snap=>{
+  const typer = snap.val();
+  typing.innerHTML = (typer && typer !== username) ? typer + " is typing..." : "";
+});
+
+/* QUESTIONS */
+function newQuestion(){
+  const random = questions[Math.floor(Math.random() * questions.length)];
+  db.ref("rooms/" + room + "/question").set(random);
+}
+db.ref("rooms/" + room + "/question").on("value", snap=>{
+  if(snap.val()) questionEl.innerHTML = snap.val();
+});
+
+/* CUSTOM QUESTIONS */
+function addQuestion(){
+  const val = document.getElementById("customQuestion").value.trim();
+  if(val === "") return;
+  questions.push(val);
+  db.ref("rooms/" + room + "/messages").push({ user:"System", text: username + " added a new question 👀", time:Date.now() });
+  document.getElementById("customQuestion").value = "";
+}
+
+/* IMAGES */
+function sendImage(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const maxW = 900;
+      const scale = Math.min(1, maxW / img.width);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+      db.ref("rooms/" + room + "/messages").push({ user: username, image: dataUrl, time: Date.now() });
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value = "";
+}
+
+/* VOICE NOTES */
+function startVoice(){
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    const recorder = new MediaRecorder(stream);
+    let chunks = [];
+    recorder.start();
+    alert("Recording for 5 seconds 🎤");
+    setTimeout(()=>{ recorder.stop(); },5000);
+    recorder.ondataavailable = e=>{ chunks.push(e.data); };
+    recorder.onstop = ()=>{
+      const blob = new Blob(chunks, {type:'audio/mp3'});
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = ()=>{
+        db.ref("rooms/" + room + "/messages").push({ user: username, voice: reader.result, time: Date.now() });
+      };
+    };
+  });
+}
+
+/* FLOATING HEARTS */
+function createHeart(){
+  const heart = document.createElement("div");
+  heart.classList.add("heart");
+  heart.innerHTML = "❤️";
+  heart.style.left = Math.random() * 100 + "vw";
+  heart.style.fontSize = (Math.random() * 20 + 15) + "px";
+  heart.style.animationDuration = (Math.random() * 4 + 4) + "s";
+  document.getElementById("bg").appendChild(heart);
+  setTimeout(()=>{ heart.remove(); },8000);
+}
+setInterval(createHeart, 500);
+</script>
+
+</body>
+</html>
